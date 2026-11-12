@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/ascii.png" alt="ASCII" width="900">
+  <img src="assets/ascii.png" alt="ASCII" width="100%">
 </p>
 
 # 7XX Service
