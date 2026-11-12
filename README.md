@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ascii.png" alt="ASCII" width="900">
+</p>
+
 # 7XX Service
 
 A playful HTTP status code generator that brings the unofficial 7XX status code series to life.
