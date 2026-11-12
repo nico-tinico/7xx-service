@@ -358,7 +358,7 @@ https://github.com/joho/7XX-rfc
 
 The catalog is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0).
 
-See data/LICENSE for the full license and data/README.md for attribution details.
+See [data/LICENSE](https://github.com/nico-tinico/7xx-service/blob/main/data/LICENSE) for the full license and [data/README.md](https://github.com/nico-tinico/7xx-service/blob/main/data/README.md) for attribution details.
 
 The MIT License does not apply to third-party catalog data.
 
