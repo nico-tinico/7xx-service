@@ -1,6 +1,6 @@
 import random
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from app.catalog import load_catalog
@@ -14,6 +14,13 @@ app = FastAPI(
 
 CODES = load_catalog()
 register_7xx_statuses(CODES)
+
+
+def get_random_code(seed: int | None = None) -> int:
+    """Return a random catalog code, optionally using a deterministic seed."""
+
+    rng = random.Random(seed)
+    return rng.choice(tuple(CODES))
 
 
 def make_response(code: int) -> JSONResponse:
@@ -35,8 +42,10 @@ def make_response(code: int) -> JSONResponse:
 
 @app.get("/", include_in_schema=False)
 @app.get("/random")
-def random_status():
-    code = random.choice(tuple(CODES))
+def random_status(
+    seed: int | None = Query(default=None)
+):
+    code = get_random_code(seed)
     return make_response(code)
 
 
