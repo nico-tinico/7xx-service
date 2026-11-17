@@ -102,15 +102,16 @@ Interactive API documentation:
 
 ## API Reference
 
-| Method | Endpoint | Description                       |
-| ------ | -------- | --------------------------------- |
-| GET    | /        | Generate a random 7XX response    |
-| GET    | /random  | Generate a random 7XX response    |
-| GET    | /codes   | List all available 7XX codes      |
-| GET    | /health  | Check service health              |
-| GET    | /{code}  | Return a specific 7XX status code |
+| Method | Endpoint     | Description                                  |
+| ------ | ------------ | -------------------------------------------- |
+| GET    | /            | Generate a random 7XX response               |
+| GET    | /random      | Generate a random 7XX response               |
+| GET    | /random/info | Retrieve information about a random 7XX code |
+| GET    | /codes       | List all available 7XX codes                 |
+| GET    | /health      | Check service health                         |
+| GET    | /{code}      | Return a specific 7XX status code            |
 
-### Random status code
+### 1. Random status code
 
 Generate a random status code from the catalog.
 
@@ -139,7 +140,161 @@ Body response:
 
 The returned status code and message depend on the selected catalog entry.
 
-### Request a specific status code
+The / endpoint is also an alias for /random.
+
+### 2. Content negotiation
+7XX Service supports HTTP content negotiation through the Accept request header.
+
+The API automatically selects the response representation based on the client's preferences.
+
+Supported media types:
+
+| Accept header    | Response format | 
+| ---------------- | --------------- | 
+| application/json | JSON            | 
+| text/plain       | Plain text      | 
+| text/html        | HTML            | 
+| */*              | JSON (default)  | 
+
+JSON is also used when the Accept header is missing.
+
+#### JSON response
+
+```
+curl -i \
+  -H "Accept: application/json" \
+  http://localhost:8000/random
+```
+
+Example body:
+
+```
+{
+  "status": 725,
+  "message": "It works on my machine",
+  "series": "7XX"
+}
+```
+
+#### Plain text response
+
+```
+curl -i \
+  -H "Accept: text/plain" \
+  http://localhost:8000/random
+```
+
+Example body:
+
+```
+725 - It works on my machine
+```
+
+#### HTML response
+
+```
+curl -i \
+  -H "Accept: text/html" \
+  http://localhost:8000/random
+```
+
+The API returns a complete HTML document containing the response information.
+
+#### Quality values and preferences
+
+The content negotiation mechanism also supports quality values (q) and wildcard media types.
+
+For example:
+
+```
+curl -i \
+  -H "Accept: text/html;q=0.9, application/json;q=1.0" \
+  http://localhost:8000/random
+```
+
+In this case, JSON is preferred because it has the highest quality value.
+
+If none of the requested media types can be satisfied, the API returns:
+
+```
+HTTP/1.1 406 Not Acceptable
+```
+
+The response includes a Vary: Accept header to indicate that the representation depends on the request's Accept header.
+
+Content negotiation is supported by /random, /random/info, /codes and /{code}.
+
+### 3. Random code information
+
+The /random/info endpoint retrieves information about a randomly selected 7XX status code without using that code as the actual HTTP response status.
+
+Unlike /random, this endpoint always returns HTTP 200 for a successful request.
+
+```
+curl -i http://localhost:8000/random/info
+```
+
+Example response:
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+```
+
+Response body:
+
+```
+{
+  "status": 725,
+  "message": "It works on my machine",
+  "series": "7XX"
+}
+```
+
+This endpoint is useful when clients need to retrieve random 7XX information without handling unconventional HTTP status codes.
+
+It also supports content negotiation, allowing JSON, plain text and HTML responses.
+
+### 4. Reproducible random generation
+
+Both /random and /random/info support an optional seed query parameter.
+
+A seed allows the random selection to be reproduced across requests.
+
+Example:
+
+```
+curl -i "http://localhost:8000/random?seed=12345"
+```
+
+Repeated requests using the same seed produce the same selected catalog entry, provided the catalog remains unchanged.
+
+The same behavior applies to /random/info:
+
+```
+curl "http://localhost:8000/random/info?seed=12345"
+```
+
+Example:
+
+```
+{
+  "status": 725,
+  "message": "It works on my machine",
+  "series": "7XX"
+}
+```
+
+Using a different seed can produce a different selection.
+
+**Notes**:
+
+- The seed parameter is optional.
+- Without a seed, the API uses normal random selection.
+- The same seed and catalog produce reproducible results.
+- Changes to the catalog may affect which code is selected for a given seed.
+
+### 5. Request a specific status code
 
 Retrieve a specific 7XX status code:
 
@@ -151,9 +306,12 @@ The service returns the requested code if it exists in the catalog.
 
 Unknown codes return a standard HTTP 404 response.
 
-### List available status codes
+### 6. Browse and search the code catalog
+The /codes endpoint provides access to the complete 7XX catalog.
 
-Retrieve the complete catalog:
+It supports text search, numeric range filtering, sorting and pagination.
+
+Basic request:
 
 ```
 curl http://localhost:8000/codes
@@ -163,7 +321,10 @@ Example response:
 
 ```
 {
-  "count": 2,
+  "count": 42,
+  "total": 42,
+  "limit": 100,
+  "offset": 0,
   "codes": [
     {
       "status": 701,
@@ -177,10 +338,116 @@ Example response:
 }
 ```
 
-The example above is **illustrative**; the actual catalog may contain additional entries.
+The example is illustrative; the actual catalog may contain additional entries.
 
-### Health check
+#### Query parameters
 
+| Parameter | Type    | Default | Description                                 | 
+| --------- | ------- | ------- | ------------------------------------------- | 
+| search    | string  | None    | Search within code numbers and descriptions | 
+| min       | integer | None    | Minimum status code                         | 
+| max	      | integer | None    | Maximum status code                         | 
+| sort      | string  | asc     | Sort order: asc or desc                     | 
+| limit     | integer | 100     | Maximum number of results (1–1000)          | 
+| offset    | integer | 0       | Number of results to skip                   | 
+
+#### Text search
+Search for a keyword within code descriptions or status code numbers.
+
+```
+curl "http://localhost:8000/codes?search=machine"
+```
+
+Search is case-insensitive when matching descriptions.
+
+#### Numeric range filtering
+Retrieve codes within a specific numeric range:
+
+```
+curl "http://localhost:8000/codes?min=720&max=730"
+```
+
+Both parameters are optional and accept values between 700 and 799.
+
+#### Sorting
+Sort results in ascending order (default):
+
+```
+curl "http://localhost:8000/codes?sort=asc"
+```
+
+Sort results in descending order:
+
+```
+curl "http://localhost:8000/codes?sort=desc"
+```
+
+Sorting is based on the numeric status code.
+
+#### Pagination
+Limit the number of returned results:
+
+```
+curl "http://localhost:8000/codes?limit=10"
+```
+
+Skip the first results using offset:
+
+```
+curl "http://localhost:8000/codes?limit=10&offset=10"
+```
+
+The response contains:
+
+- count — Number of results returned in the current page.
+- total — Total number of results after filtering, before pagination.
+- limit — Maximum number of results requested.
+- offset — Number of results skipped.
+- codes — Array containing the current page.
+
+#### Combining filters
+All filtering and pagination parameters can be combined.
+
+For example:
+
+```
+curl "http://localhost:8000/codes?search=machine&min=700&max=799&sort=desc&limit=5&offset=0"
+```
+This request:
+
+Searches for machine in descriptions and code numbers.
+Restricts results to the specified numeric range.
+Sorts matching codes in descending order.
+Returns at most five results.
+Starts from the first result.
+
+#### Validation and errors
+
+The endpoint validates query parameters and returns HTTP 422 for invalid requests.
+
+Examples include:
+
+- min greater than max.
+- min or max outside the 700–799 range.
+- limit outside the 1–1000 range.
+- Negative offset.
+- Invalid sort values.
+- Empty search values.
+
+Example:
+
+```
+curl -i "http://localhost:8000/codes?min=750&max=720"
+```
+Returns:
+
+```
+HTTP/1.1 422 Unprocessable Entity
+```
+
+The /codes endpoint also supports content negotiation.
+
+### 7. Health check
 Check whether the service is running:
 
 ```
@@ -195,7 +462,6 @@ Example response:
   "available_codes": 42
 }
 ```
-
 The number of available codes depends on the loaded catalog.
 
 ## Docker
@@ -255,6 +521,18 @@ Install the project dependencies and run:
 pytest -v
 ```
 
+The test suite covers:
+
+- Health check and catalog integrity.
+- Random and specific status code generation.
+- Real HTTP 7XX responses through Uvicorn.
+- Content negotiation and supported media types.
+- Random information retrieval.
+- Deterministic generation using seeds.
+- Catalog search and numeric range filtering.
+- Sorting and pagination.
+- Invalid parameter handling.
+
 ### Project structure
 
 ```
@@ -293,6 +571,7 @@ pytest -v
 - **FastAPI** for the REST API.
 - **Uvicorn** as the ASGI server.
 - **h11** as the HTTP protocol implementation.
+- Python's **random module** for random selection and seeded generation.
 - **pytest** for automated testing.
 - **Docker** for containerization.
 
