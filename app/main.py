@@ -11,7 +11,7 @@ from app.uvicorn_7xx import register_7xx_statuses
 app = FastAPI(
     title="7XX Service",
     description="Random HTTP 7XX status code generator",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 CODES = load_catalog()
