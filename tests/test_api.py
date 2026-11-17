@@ -187,3 +187,11 @@ def test_real_http_random(uvicorn_server):
     assert body["series"] == "7XX"
 
     connection.close()
+
+
+def test_random_seed_is_deterministic ():
+    first = client.get("/random?seed=12345")
+    second = client.get("/random?seed=12345")
+
+    assert first.status_code == second.status_code
+    assert first.json() == second.json()
