@@ -189,6 +189,26 @@ def test_real_http_random(uvicorn_server):
     connection.close()
 
 
+def test_random_info():
+    response = client.get("/random/info")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["status"] in CODES
+    assert body["message"] == CODES[body["status"]]
+    assert body["series"] == "7XX"
+
+
+def test_random_info_seed_is_deterministic():
+    first = client.get("/random/info?seed=12345")
+    second = client.get("/random/info?seed=12345")
+
+    assert first.status_code == 200
+    assert first.json() == second.json()
+    
+
 def test_random_seed_is_deterministic():
     first = client.get("/random?seed=12345")
     second = client.get("/random?seed=12345")

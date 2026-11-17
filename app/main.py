@@ -185,6 +185,24 @@ def random_status(
     return make_response(code, request)
 
 
+@app.get("/random/info")
+def random_info(
+    request: Request,
+    seed: int | None = Query(default=None),
+):
+    code = get_random_code(seed)
+
+    return render_response(
+        request=request,
+        content={
+            "status": code,
+            "message": CODES[code],
+            "series": "7XX",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/codes")
 def list_codes(
     request: Request
