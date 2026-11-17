@@ -13,7 +13,6 @@ app = FastAPI(
 )
 
 CODES = load_catalog()
-
 register_7xx_statuses(CODES)
 
 
