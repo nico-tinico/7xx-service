@@ -207,7 +207,7 @@ def test_random_info_seed_is_deterministic():
 
     assert first.status_code == 200
     assert first.json() == second.json()
-    
+
 
 def test_random_seed_is_deterministic():
     first = client.get("/random?seed=12345")
@@ -216,6 +216,53 @@ def test_random_seed_is_deterministic():
     assert first.status_code == second.status_code
     assert first.json() == second.json()
 
+
+def test_codes_search():
+    response = client.get("/codes?search=machine")
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["count"] > 0
+    assert all(
+        "machine" in item["message"].lower()
+        for item in body["codes"]
+    )
+
+
+def test_codes_range():
+    response = client.get("/codes?min=720&max=730")
+
+    assert response.status_code == 200
+
+    for item in response.json()["codes"]:
+        assert 720 <= item["status"] <= 730
+
+
+def test_codes_sort_descending():
+    response = client.get("/codes?sort=desc")
+
+    codes = [
+        item["status"]
+        for item in response.json()["codes"]
+    ]
+
+    assert codes == sorted(codes, reverse=True)
+
+
+def test_codes_pagination():
+    response = client.get("/codes?limit=2&offset=0")
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 2
+    assert len(response.json()["codes"]) == 2
+
+
+def test_codes_invalid_range():
+    response = client.get("/codes?min=750&max=720")
+
+    assert response.status_code == 422
+    
 
 def test_content_negotiation_json():
     response = client.get(

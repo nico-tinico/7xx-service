@@ -205,20 +205,50 @@ def random_info(
 
 @app.get("/codes")
 def list_codes(
-    request: Request
+    request: Request,
+    search: str | None = Query(default=None, min_length=1),
+    min_code: int | None = Query(default=None, alias="min", ge=700, le=799),
+    max_code: int | None = Query(default=None, alias="max", ge=700, le=799),
+    sort: str = Query(default="asc", pattern="^(asc|desc)$"),
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0)
 ):
+    if min_code is not None and max_code is not None:
+        if min_code > max_code:
+            raise HTTPException(
+                status_code=422,
+                detail="'min' cannot be greater than 'max'.",
+            )
+
+    filtered = [
+        {"status": code, "message": description}
+        for code, description in CODES.items()
+        if (min_code is None or code >= min_code)
+        and (max_code is None or code <= max_code)
+        and (
+            search is None
+            or search.casefold() in description.casefold()
+            or search in str(code)
+        )
+    ]
+
+    filtered.sort(
+        key=lambda item: item["status"],
+        reverse=(sort == "desc"),
+    )
+
+    total = len(filtered)
+    paginated = filtered[offset:offset + limit]
+    
     return render_response(
         request=request,
         content={
-            "count": len(CODES),
-            "codes": [
-                {
-                    "status": code,
-                    "message": description,
-                }
-                for code, description in CODES.items()
-            ],
-        }
+            "count": len(paginated),
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "codes": paginated,
+        },
     )
 
 
