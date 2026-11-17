@@ -189,9 +189,65 @@ def test_real_http_random(uvicorn_server):
     connection.close()
 
 
-def test_random_seed_is_deterministic ():
+def test_random_seed_is_deterministic():
     first = client.get("/random?seed=12345")
     second = client.get("/random?seed=12345")
 
     assert first.status_code == second.status_code
     assert first.json() == second.json()
+
+
+def test_content_negotiation_json():
+    response = client.get(
+        "/random",
+        headers={"Accept": "application/json"},
+    )
+
+    assert response.headers["content-type"].startswith(
+        "application/json"
+    )
+
+
+def test_content_negotiation_plain_text():
+    response = client.get(
+        "/random",
+        headers={"Accept": "text/plain"},
+    )
+
+    assert response.headers["content-type"].startswith(
+        "text/plain"
+    )
+    assert response.status_code in CODES
+
+
+def test_content_negotiation_html():
+    response = client.get(
+        "/random",
+        headers={"Accept": "text/html"},
+    )
+
+    assert response.headers["content-type"].startswith(
+        "text/html"
+    )
+    assert "<!DOCTYPE html>" in response.text
+
+
+def test_content_negotiation_not_acceptable():
+    response = client.get(
+        "/random",
+        headers={"Accept": "application/xml"},
+    )
+
+    assert response.status_code == 406
+
+
+def test_codes_content_negotiation():
+    response = client.get(
+        "/codes",
+        headers={"Accept": "text/plain"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "text/plain"
+    )
