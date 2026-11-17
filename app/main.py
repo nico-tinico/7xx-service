@@ -42,7 +42,7 @@ def make_response(code: int) -> JSONResponse:
 
 @app.get("/", include_in_schema=False)
 @app.get("/random")
-def random_status(
+def random_status (
     seed: int | None = Query(default=None)
 ):
     code = get_random_code(seed)

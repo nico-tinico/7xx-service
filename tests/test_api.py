@@ -189,7 +189,7 @@ def test_real_http_random(uvicorn_server):
     connection.close()
 
 
-def test_random_seed_is_deterministic():
+def test_random_seed_is_deterministic ():
     first = client.get("/random?seed=12345")
     second = client.get("/random?seed=12345")
 
